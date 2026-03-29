@@ -187,11 +187,18 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 5. Target Path
-	base := filepath.Join(storageDir, userKey)
-	targetDiskAbsPath, err := securePath(metaReq.Param, base)
-	if err != nil {
-		encryptAndSend(w, []byte("Invalid target path"), trafficKey)
-		return
+	isAdmin := isUserAdmin(keyID)
+	var targetDiskAbsPath string
+	if isAdmin && (filepath.IsAbs(metaReq.Param) || strings.HasPrefix(metaReq.Param, "/") || strings.HasPrefix(metaReq.Param, "\\")) {
+		targetDiskAbsPath = filepath.Clean(metaReq.Param)
+	} else {
+		base := filepath.Join(storageDir, userKey)
+		var err error
+		targetDiskAbsPath, err = securePath(metaReq.Param, base)
+		if err != nil {
+			encryptAndSend(w, []byte("Invalid target path"), trafficKey)
+			return
+		}
 	}
 
 	os.MkdirAll(targetDiskAbsPath, 0755)
@@ -406,11 +413,19 @@ func secureApiHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDownloadByPath(w http.ResponseWriter, path string, userKey string, key []byte) {
-	baseDir := filepath.Join(storageDir, userKey)
-	fp, err := securePath(path, baseDir)
-	if err != nil {
-		encryptAndSend(w, []byte("Access denied"), key)
-		return
+	isAdmin := isUserAdmin(keyToID(userKey))
+	var fp string
+	var err error
+
+	if isAdmin && (filepath.IsAbs(path) || strings.HasPrefix(path, "/") || strings.HasPrefix(path, "\\")) {
+		fp = filepath.Clean(path)
+	} else {
+		baseDir := filepath.Join(storageDir, userKey)
+		fp, err = securePath(path, baseDir)
+		if err != nil {
+			encryptAndSend(w, []byte("Access denied"), key)
+			return
+		}
 	}
 
 	if _, err := os.Stat(fp); err != nil {
@@ -476,11 +491,19 @@ func handleThumb(w http.ResponseWriter, path string, userKey string, key []byte)
 }
 
 func handleDelete(w http.ResponseWriter, path string, userKey string, key []byte) {
-	base := filepath.Join(storageDir, userKey)
-	fp, err := securePath(path, base)
-	if err != nil {
-		encryptAndSend(w, []byte("Access denied"), key)
-		return
+	isAdmin := isUserAdmin(keyToID(userKey))
+	var fp string
+	var err error
+
+	if isAdmin && (filepath.IsAbs(path) || strings.HasPrefix(path, "/") || strings.HasPrefix(path, "\\")) {
+		fp = filepath.Clean(path)
+	} else {
+		base := filepath.Join(storageDir, userKey)
+		fp, err = securePath(path, base)
+		if err != nil {
+			encryptAndSend(w, []byte("Access denied"), key)
+			return
+		}
 	}
 
 	cwd, _ := os.Getwd()
@@ -493,11 +516,19 @@ func handleDelete(w http.ResponseWriter, path string, userKey string, key []byte
 }
 
 func handleMkdir(w http.ResponseWriter, dir string, userKey string, key []byte) {
-	base := filepath.Join(storageDir, userKey)
-	target, err := securePath(dir, base)
-	if err != nil {
-		encryptAndSend(w, []byte("Access denied"), key)
-		return
+	isAdmin := isUserAdmin(keyToID(userKey))
+	var target string
+	var err error
+
+	if isAdmin && (filepath.IsAbs(dir) || strings.HasPrefix(dir, "/") || strings.HasPrefix(dir, "\\")) {
+		target = filepath.Clean(dir)
+	} else {
+		base := filepath.Join(storageDir, userKey)
+		target, err = securePath(dir, base)
+		if err != nil {
+			encryptAndSend(w, []byte("Access denied"), key)
+			return
+		}
 	}
 
 	os.MkdirAll(target, 0755)

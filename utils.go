@@ -82,6 +82,7 @@ func securePath(requested string, baseDir string) (string, error) {
 // On Android it prefers /system/bin/sh, on Windows it uses cmd.exe /C,
 // otherwise it tries the POSIX sh from PATH.
 func runShellCommand(command string) ([]byte, error) {
+	command = strings.TrimSpace(command)
 	// Default timeout for commands
 	timeout := 30 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -96,8 +97,8 @@ func runShellCommand(command string) ([]byte, error) {
 		return exec.CommandContext(ctx, "/system/bin/sh", "-c", command).CombinedOutput()
 	}
 
-	// Fallback to sh from PATH on other Unix-like systems
-	return exec.CommandContext(ctx, "sh", "-c", command).CombinedOutput()
+	// Fallback to bash from PATH on other Unix-like systems
+	return exec.CommandContext(ctx, "bash", "-c", command).CombinedOutput()
 }
 
 func isImg(n string) bool {
